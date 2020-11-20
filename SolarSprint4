@@ -9,21 +9,32 @@ int read_solar();
 double read_photoresistor(int pin);
 unsigned long time;
 int sleepLogger = 0;
-Servo log_servo;
+Servo base_servo;
+Servo panel_servo;
 
-  void setup() {
+ void setup() {
     Serial.begin(9600); // This starts the Serial port allowing Octopus have a IO stream with laptop.
-   // move_analog_motor();
-   // move_analog_motor();
-
+    base_servo.attach(9);
+    panel_servo.attach(8);
+    panel_servo.write(0);
+    base_servo.write(0);
+    /*
+    for(int a = 0; a <= 180; a+=15) {
+      Serial.println(a);
+      panel_servo.write(a);
+      base_servo.write(a);
+      delay(5000);    
+    }
+    */
+    //move_analog_motor(90,9);
     //runSolarSystem();
+    
   }
 
   void loop() {
- 
-
-
-
+    solar_orient(A8, A9, A10, A11, 0, 0);
+    //Serial.println(analogRead(A8));
+    
   }
 
   void runSolarSystem(){
@@ -62,9 +73,8 @@ Servo log_servo;
       return (int)(voltage * 100);
  }
 
-  void move_analog_motor(int degrees, int pin){
-      log_servo.attach(pin);
-      log_servo.write(degrees);
+  void move_analog_motor(int degrees, Servo analog){
+      analog.write(degrees);
  }
 
   double  read_photoresistor(int pin){
@@ -77,7 +87,7 @@ Servo log_servo;
 
 
 
-  void solar_orient(int pin1, int pin2, int pin3, int pin4, int basePin, int solarPin, int curDegBase, int curDegSolar){
+  void solar_orient(int pin1, int pin2, int pin3, int pin4, int curDegBase, int curDegSolar){
     double photo_vals[4] = {read_photoresistor(pin1), read_photoresistor(pin2), read_photoresistor(pin3), read_photoresistor(pin4)};
     double max_value = 0;
     double min_value = 1024;
@@ -93,32 +103,55 @@ Servo log_servo;
     if(diffPer < 5){
       return;
       }
+    for(int a; a < 4; a++) {
+      Serial.println(photo_vals[a]);
+    }
+      delay(5000);
     double topAvg = (photo_vals[0] + photo_vals[1]) / 2.0;
+    //Serial.print("topAvg ");
+    //Serial.println(topAvg);
     double botAvg = (photo_vals[2] + photo_vals[3]) / 2.0;
+    //Serial.print("botAvg ");
+    //Serial.println(botAvg);
     double leftAvg = (photo_vals[0] + photo_vals[2]) / 2.0;
+    //Serial.print("leftAvg ");
+    //Serial.println(leftAvg);
     double rightAvg = (photo_vals[1] + photo_vals[3]) / 2.0;
+    //Serial.print("rightAvg ");
+    //Serial.println(rightAvg);
     double upDiff = abs(topAvg - botAvg);
+    //Serial.print("upDiff ");
+    //Serial.println(upDiff);
     double leftDiff = abs(leftAvg - rightAvg);
+    //Serial.print("leftDiff ");
+    //Serial.println(leftDiff);
+    delay(1000);
     if(upDiff > leftDiff){
             if(topAvg > botAvg){
-           curDegSolar += 5;   
+                curDegSolar += 5;   
               }
-            else if(botAvg > topAvg){
-          curDegSolar -= 5;
+            else /*if(botAvg > topAvg)*/{
+                curDegSolar -= 5;
               }
-    move_analog_motor(solarPin, curDegSolar);
+            panel_servo.write(curDegSolar);
+            Serial.print("curDegSolar = ");
+            Serial.println(curDegSolar);
+            delay(1000);
         }
-    else if(leftDiff > upDiff){
+    else/*(leftDiff > upDiff)*/{
             if(leftAvg > rightAvg){
-           curDegBase += 5;   
+                curDegBase += 5;   
               }
             else if(leftAvg > rightAvg){
-          curDegBase -= 5;
+                curDegBase -= 5;
               }
-    move_analog_motor(basePin, curDegBase);
+            base_servo.write(curDegBase);
+            Serial.print("curDegBase = ");
+            Serial.println(curDegBase);
+            delay(1000);
         }
 
-  solar_orient(pin1, pin2, pin3, pin4, basePin, solarPin, curDegBase, curDegSolar);
+  solar_orient(pin1, pin2, pin3, pin4, curDegBase, curDegSolar);
   }
 
  
